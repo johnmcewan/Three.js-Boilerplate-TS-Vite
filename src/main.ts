@@ -1,56 +1,81 @@
-import './style.css'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import Stats from 'three/addons/libs/stats.module.js'
-import { GUI } from 'dat.gui'
+import './style.css';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import Stats from 'three/addons/libs/stats.module.js';
+import { GUI } from 'dat.gui';
 
-const scene = new THREE.Scene()
+const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-camera.position.z = 1.5
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
 
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
-new OrbitControls(camera, renderer.domElement)
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; // Smooth camera movement
+controls.dampingFactor = 0.05;
 
-const geometry = new THREE.BoxGeometry()
-const material = new THREE.MeshNormalMaterial({ wireframe: true })
+const stats = new Stats();
+document.body.appendChild(stats.dom);
 
-const cube = new THREE.Mesh(geometry, material)
-scene.add(cube)
+const gui = new GUI();
 
-const stats = new Stats()
-document.body.appendChild(stats.dom)
+// Load the 3D model
+const loader = new GLTFLoader();
+let model;
 
-const gui = new GUI()
+loader.load(
+  '3D_TP_export.glb', // Path to your GLB file
+  (gltf) => {
+    model = gltf.scene;
+    scene.add(model);
 
-const cubeFolder = gui.addFolder('Cube')
-cubeFolder.add(cube.rotation, 'x', 0, Math.PI * 2)
-cubeFolder.add(cube.rotation, 'y', 0, Math.PI * 2)
-cubeFolder.add(cube.rotation, 'z', 0, Math.PI * 2)
-cubeFolder.open()
+    // Add GUI controls for the model
+    const modelFolder = gui.addFolder('Model');
+    modelFolder.add(model.rotation, 'x', 0, Math.PI * 2);
+    modelFolder.add(model.rotation, 'y', 0, Math.PI * 2);
+    modelFolder.add(model.rotation, 'z', 0, Math.PI * 2);
+    modelFolder.open();
+  },
+  undefined, // Progress callback (optional)
+  (error) => {
+    console.error('Error loading model:', error);
+  }
+);
 
-const cameraFolder = gui.addFolder('Camera')
-cameraFolder.add(camera.position, 'z', 0, 20)
-cameraFolder.open()
+// Add lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5, 5, 5).normalize();
+scene.add(directionalLight);
+
+// Camera GUI controls
+const cameraFolder = gui.addFolder('Camera');
+cameraFolder.add(camera.position, 'z', 0, 20);
+cameraFolder.open();
 
 function animate() {
-  requestAnimationFrame(animate)
+  requestAnimationFrame(animate);
 
-  //cube.rotation.x += 0.01
-  //cube.rotation.y += 0.01
+  // Update controls
+  controls.update();
 
-  renderer.render(scene, camera)
+  // Render the scene
+  renderer.render(scene, camera);
 
-  stats.update()
+  // Update stats
+  stats.update();
 }
 
-animate()
+animate();
